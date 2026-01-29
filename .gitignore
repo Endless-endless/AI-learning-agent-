@@ -1,2 +1,4 @@
 .obsidian/
 *.docx
+__pycache__/
+.vscode/
