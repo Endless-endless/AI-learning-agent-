@@ -20,11 +20,15 @@ def init_state(goal: str) -> dict:
         "goal": goal,
         "attempt": 0,
         "history": [],
-        "final_result": None
+        "final_result": None   # 只有在 accept 后才允许非 None
     }
 
+from memory_store import load_memory, save_memory, record_success, record_failure
 
 def run_agent(goal: str) -> dict:
+    memory = load_memory()
+
+
     state = init_state(goal)
     current_input = goal
 
@@ -45,8 +49,13 @@ def run_agent(goal: str) -> dict:
         if is_valid(result):
             print("[Agent] Output accepted ✅")
             state["final_result"] = result
+
+            record_success(memory, state)
+            save_memory(memory)
             return state
 
+        record_failure(memory, state)
+        save_memory(memory)
         print("[Agent] Output rejected ❌, refining input...")
         current_input = (
             goal
