@@ -1,15 +1,17 @@
+import time
+
 from llm_client import call_llm
 
 MAX_RETRY = 2
 
-def is_valid(result: dict) -> bool:
+def is_valid(result: dict, strict_mode: bool) -> bool:
     if not isinstance(result, dict):
         return False
     if "summary" not in result:
         return False
-    if result.get("confidence", 0) < 0.7:
-        return False
-    return True
+
+    threshold = 0.8 if strict_mode else 0.7
+    return result.get("confidence", 0) >= threshold
 
 
 def init_state(goal: str) -> dict:
@@ -27,12 +29,17 @@ from memory_store import load_memory, save_memory, record_success, record_failur
 
 def run_agent(goal: str) -> dict:
     memory = load_memory()
+    strict_mode = should_be_stricter(memory, goal)
+
+    if strict_mode:
+        print("[Agent] Strict mode enabled due to past failures")
 
 
     state = init_state(goal)
     current_input = goal
 
     while state["attempt"] <= MAX_RETRY:
+        time.sleep(1.5)  # ⭐ 核心：Agent 级节流
         print(f"\n[Agent] Attempt {state['attempt'] + 1}")
 
         result = call_llm(current_input)
@@ -46,7 +53,7 @@ def run_agent(goal: str) -> dict:
 
         print("[Agent] LLM Output:", result)
 
-        if is_valid(result):
+        if is_valid(result,strict_mode):
             print("[Agent] Output accepted ✅")
             state["final_result"] = result
 
@@ -67,6 +74,13 @@ def run_agent(goal: str) -> dict:
     state["final_result"] = result
     return state
 
+def should_be_stricter(memory, goal: str) -> bool:
+    """
+    根据历史失败次数决定是否启用严格模式
+    """
+    failures = memory.get("failures", [])
+    failed_goals = [f["goal"] for f in failures]
+    return failed_goals.count(goal) >= 2
 
 if __name__ == "__main__":
     state = run_agent("我想学习如何构建一个 AI Agent")
