@@ -1,5 +1,6 @@
 import json
 import os
+import time
 from datetime import datetime
 
 MEMORY_FILE = "agent_memory.json"
@@ -31,3 +32,10 @@ def record_failure(memory, state):
         "timestamp": datetime.now().isoformat()
     })
 
+# ✅ Day 13 新增：记录反思
+def record_reflection(memory, goal, reflection_text):
+    memory["reflections"].append({
+        "goal": goal,
+        "reflection": reflection_text,
+        "timestamp": time.time()
+    })
